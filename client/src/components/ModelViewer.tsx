@@ -1,6 +1,7 @@
 /**
  * ModelViewer Component — Navy/Beige Theme
- * Enhanced with more settings: wireframe overlay, color tint, exposure slider
+ * FIX: Now properly reloads when src changes (upload or URL input)
+ * Uses key={src} on model-viewer to force re-mount on new model
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -54,6 +55,12 @@ export default function ModelViewer({
   const [isDarkBg, setIsDarkBg] = useState(false);
   const controlTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Reset loaded state when src changes
+  useEffect(() => {
+    setIsLoaded(false);
+    setLoadProgress(0);
+  }, [src]);
+
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
@@ -68,14 +75,20 @@ export default function ModelViewer({
       setLoadProgress(Math.round(progress * 100));
     };
 
+    const handleError = (e: any) => {
+      console.error("Model viewer error:", e);
+    };
+
     viewer.addEventListener("load", handleLoad);
     viewer.addEventListener("progress", handleProgress);
+    viewer.addEventListener("error", handleError);
 
     return () => {
       viewer.removeEventListener("load", handleLoad);
       viewer.removeEventListener("progress", handleProgress);
+      viewer.removeEventListener("error", handleError);
     };
-  }, []);
+  }, [src]);
 
   const handleMouseMove = () => {
     setShowControlBar(true);
@@ -92,16 +105,20 @@ export default function ModelViewer({
   const handleZoomIn = () => {
     const viewer = viewerRef.current;
     if (viewer) {
-      const fov = viewer.getFieldOfView();
-      viewer.fieldOfView = `${Math.max(10, fov - 5)}deg`;
+      try {
+        const fov = viewer.getFieldOfView();
+        viewer.fieldOfView = `${Math.max(10, fov - 5)}deg`;
+      } catch { /* ignore */ }
     }
   };
 
   const handleZoomOut = () => {
     const viewer = viewerRef.current;
     if (viewer) {
-      const fov = viewer.getFieldOfView();
-      viewer.fieldOfView = `${Math.min(90, fov + 5)}deg`;
+      try {
+        const fov = viewer.getFieldOfView();
+        viewer.fieldOfView = `${Math.min(90, fov + 5)}deg`;
+      } catch { /* ignore */ }
     }
   };
 
@@ -156,7 +173,7 @@ export default function ModelViewer({
 
       {/* Loading overlay */}
       {!isLoaded && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: currentBg }}>
           <div className="relative w-16 h-16">
             <svg className="w-16 h-16 animate-spin" viewBox="0 0 64 64">
               <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2" className="text-beige" />
@@ -170,15 +187,16 @@ export default function ModelViewer({
         </div>
       )}
 
-      {/* The model-viewer element */}
+      {/* The model-viewer element — key={src} forces re-mount on new model */}
       <model-viewer
+        key={src}
         ref={viewerRef}
         src={src}
         alt={alt}
         poster={poster}
         camera-controls
         touch-action="pan-y"
-        auto-rotate={isRotating ? "" : undefined}
+        {...(isRotating ? { "auto-rotate": "" } : {})}
         auto-rotate-delay="0"
         rotation-per-second="30deg"
         shadow-intensity={String(shadowIntensity)}
@@ -190,9 +208,7 @@ export default function ModelViewer({
         min-camera-orbit="auto auto auto"
         max-camera-orbit="auto auto auto"
         field-of-view="30deg"
-        ar={showAR ? "" : undefined}
-        ar-modes="webxr scene-viewer quick-look"
-        ar-scale="auto"
+        {...(showAR ? { ar: "", "ar-modes": "webxr scene-viewer quick-look", "ar-scale": "auto" } : {})}
         style={{
           width: "100%",
           height: "100%",

@@ -1,12 +1,18 @@
 /**
  * Home Page — NQSH 3D Viewer
  * Theme: Deep Navy (#0a1628) + Warm Beige (#d4c4b0)
- * Features: Interactive background, labak-style hover, STL support, product showcase
+ * FIXES:
+ *   1. Model upload now works (key={src} on viewers, reset loaded state)
+ *   2. English translation via LanguageContext
+ *   3. Antigravity cursor effect ONLY in hero + How It Works sections
+ *   4. Logo is bigger (matches "3D Viewer" heading size)
  */
 
-import { useState, useRef, useCallback, useEffect, lazy, Suspense } from "react";
+import { useState, useRef, useCallback, lazy, Suspense } from "react";
 import ModelViewer from "@/components/ModelViewer";
-import InteractiveBackground from "@/components/InteractiveBackground";
+import AntigravityEffect from "@/components/AntigravityEffect";
+import LanguageToggle from "@/components/LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   Upload,
   Code2,
@@ -35,7 +41,6 @@ import { motion, AnimatePresence } from "framer-motion";
 const STLViewer = lazy(() => import("@/components/STLViewer"));
 
 const LOGO_DARK = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028291896/WhHEofVoGfMfAZdiUP5fWK/IMG_6623_f500d39f.PNG";
-const LOGO_LIGHT = "https://d2xsxph8kpxj0f.cloudfront.net/310419663028291896/WhHEofVoGfMfAZdiUP5fWK/IMG_6624_9564d92c.PNG";
 
 const DEMO_MODEL = "https://modelviewer.dev/shared-assets/models/Astronaut.glb";
 
@@ -54,8 +59,9 @@ const PRODUCTS = [
 type FileType = "glb" | "gltf" | "stl";
 
 export default function Home() {
+  const { t, lang, dir } = useLanguage();
   const [modelUrl, setModelUrl] = useState(DEMO_MODEL);
-  const [modelName, setModelName] = useState("نموذج تجريبي");
+  const [modelName, setModelName] = useState("Demo Model");
   const [fileType, setFileType] = useState<FileType>("glb");
   const [embedWidth, setEmbedWidth] = useState("100%");
   const [embedHeight, setEmbedHeight] = useState("500px");
@@ -76,7 +82,7 @@ export default function Home() {
     const validExtensions = [".glb", ".gltf", ".stl"];
     const ext = file.name.substring(file.name.lastIndexOf(".")).toLowerCase();
     if (!validExtensions.includes(ext)) {
-      toast.error("صيغة غير مدعومة", { description: "يرجى رفع ملف بصيغة GLB أو GLTF أو STL" });
+      toast.error(t("uploadError"), { description: t("uploadErrorDesc") });
       return;
     }
 
@@ -85,23 +91,23 @@ export default function Home() {
     setModelName(file.name.replace(/\.[^/.]+$/, ""));
     setFileType(ext.replace(".", "") as FileType);
     setActiveTab("viewer");
-    toast.success("تم تحميل النموذج بنجاح", { description: file.name });
-  }, []);
+    toast.success(t("uploadSuccess"), { description: file.name });
+  }, [t]);
 
   const handleUrlInput = useCallback((url: string) => {
     if (!url) return;
     const lower = url.toLowerCase();
     if (lower.includes(".glb") || lower.includes(".gltf") || lower.includes(".stl")) {
       setModelUrl(url);
-      setModelName("نموذج خارجي");
+      setModelName(lang === "ar" ? "نموذج خارجي" : "External Model");
       if (lower.includes(".stl")) setFileType("stl");
       else setFileType("glb");
       setActiveTab("viewer");
-      toast.success("تم تحميل النموذج من الرابط");
+      toast.success(t("urlSuccess"));
     } else {
-      toast.error("رابط غير صالح", { description: "يرجى إدخال رابط ينتهي بـ .glb أو .gltf أو .stl" });
+      toast.error(t("urlError"), { description: t("urlErrorDesc") });
     }
-  }, []);
+  }, [t, lang]);
 
   const currentOrigin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -118,7 +124,7 @@ export default function Home() {
   const copyEmbedCode = () => {
     navigator.clipboard.writeText(embedCode);
     setCopied(true);
-    toast.success("تم نسخ كود التضمين");
+    toast.success(t("embedCopied"));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -127,13 +133,18 @@ export default function Home() {
   };
 
   const isSTL = fileType === "stl";
+  const isRTL = dir === "rtl";
 
   return (
-    <div className="min-h-screen bg-background relative">
-      <InteractiveBackground />
+    <div className="min-h-screen bg-background relative" dir={dir}>
+      {/* Language toggle — fixed position */}
+      <LanguageToggle />
 
-      {/* ===== HERO SECTION ===== */}
+      {/* ===== HERO SECTION — with Antigravity effect ===== */}
       <section className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden">
+        {/* Antigravity floating elements — ONLY in hero */}
+        <AntigravityEffect density={1.2} />
+
         {/* Navy gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-navy/[0.03] via-transparent to-background z-[1]" />
 
@@ -143,12 +154,12 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.9, ease: "easeOut" }}
           >
-            {/* Logo */}
-            <div className="flex items-center justify-center mb-8">
+            {/* Logo — BIGGER: matches heading size */}
+            <div className="flex items-center justify-center mb-6">
               <img
                 src={LOGO_DARK}
                 alt="نقش"
-                className="h-16 md:h-20 object-contain"
+                className="h-24 md:h-32 lg:h-36 object-contain"
               />
             </div>
 
@@ -156,34 +167,34 @@ export default function Home() {
               3D Viewer
             </h1>
 
-            <p className="font-arabic text-lg md:text-xl text-navy/70 mb-4 leading-relaxed max-w-xl mx-auto">
-              عارض ثلاثي الأبعاد تفاعلي لمنتجاتك
+            <p className={`${isRTL ? "font-arabic" : "font-body"} text-lg md:text-xl text-navy/70 mb-4 leading-relaxed max-w-xl mx-auto`}>
+              {t("heroSubtitle")}
             </p>
-            <p className="font-arabic text-sm text-navy/50 mb-10 max-w-md mx-auto">
-              اعرض منتجاتك المطبوعة بتقنية ثلاثية الأبعاد بشكل تفاعلي — دوران 360° وتكبير وواقع معزز
+            <p className={`${isRTL ? "font-arabic" : "font-body"} text-sm text-navy/50 mb-10 max-w-md mx-auto`}>
+              {t("heroDesc")}
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button
                 onClick={scrollToViewer}
-                className="btn-hover bg-navy text-cream hover:bg-navy-light rounded-full px-8 py-6 text-base font-arabic shadow-lg"
+                className="btn-hover bg-navy text-cream hover:bg-navy-light rounded-full px-8 py-6 text-base shadow-lg"
               >
-                <Eye className="w-4 h-4 ml-2" />
-                جرّب العارض
+                <Eye className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("tryViewer")}
               </Button>
               <Button
                 variant="outline"
                 onClick={() => fileInputRef.current?.click()}
-                className="btn-hover rounded-full px-8 py-6 text-base font-arabic border-navy/20 hover:bg-navy/5 text-navy"
+                className="btn-hover rounded-full px-8 py-6 text-base border-navy/20 hover:bg-navy/5 text-navy"
               >
-                <Upload className="w-4 h-4 ml-2" />
-                ارفع نموذجك
+                <Upload className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("uploadModel")}
               </Button>
             </div>
 
             {/* Supported formats badge */}
             <div className="mt-6 flex items-center justify-center gap-2 text-xs font-body text-navy/40">
-              <span>يدعم:</span>
+              <span>{t("supports")}</span>
               <span className="px-2 py-0.5 rounded bg-navy/5 text-navy/60">.GLB</span>
               <span className="px-2 py-0.5 rounded bg-navy/5 text-navy/60">.GLTF</span>
               <span className="px-2 py-0.5 rounded bg-beige-dark/20 text-beige-dark font-semibold">.STL</span>
@@ -201,20 +212,20 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* ===== MAIN VIEWER SECTION ===== */}
+      {/* ===== MAIN VIEWER SECTION — NO antigravity here ===== */}
       <section ref={viewerSectionRef} className="py-16 md:py-24 relative z-10">
         <div className="container max-w-6xl mx-auto">
           {/* Tab Navigation */}
           <div className="flex items-center justify-center gap-2 mb-10">
             {[
-              { id: "viewer" as const, icon: <Box className="w-4 h-4" />, label: "العارض" },
-              { id: "settings" as const, icon: <Settings2 className="w-4 h-4" />, label: "الإعدادات" },
-              { id: "embed" as const, icon: <Code2 className="w-4 h-4" />, label: "كود التضمين" },
+              { id: "viewer" as const, icon: <Box className="w-4 h-4" />, label: t("tabViewer") },
+              { id: "settings" as const, icon: <Settings2 className="w-4 h-4" />, label: t("tabSettings") },
+              { id: "embed" as const, icon: <Code2 className="w-4 h-4" />, label: t("tabEmbed") },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`btn-hover flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-arabic transition-all duration-300 ${
+                className={`btn-hover flex items-center gap-2 px-5 py-2.5 rounded-full text-sm transition-all duration-300 ${
                   activeTab === tab.id
                     ? "bg-navy text-cream shadow-md"
                     : "bg-beige/30 text-navy/60 hover:bg-beige/50"
@@ -234,15 +245,15 @@ export default function Home() {
                   <div className="flex items-center justify-between mb-4 px-1">
                     <div className="flex items-center gap-2">
                       <Sparkles className="w-4 h-4 text-beige-dark" />
-                      <h2 className="font-arabic text-sm font-medium text-navy">{modelName}</h2>
+                      <h2 className="text-sm font-medium text-navy">{modelName}</h2>
                       {isSTL && <span className="px-2 py-0.5 rounded-full bg-beige/50 text-beige-dark text-[10px] font-bold">STL</span>}
                     </div>
                     <button
                       onClick={() => fileInputRef.current?.click()}
-                      className="btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-arabic bg-beige/30 hover:bg-beige/50 text-navy/60 transition-colors"
+                      className="btn-hover flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs bg-beige/30 hover:bg-beige/50 text-navy/60 transition-colors"
                     >
                       <Upload className="w-3 h-3" />
-                      تغيير النموذج
+                      {t("changeModel")}
                     </button>
                   </div>
 
@@ -251,6 +262,7 @@ export default function Home() {
                     {isSTL ? (
                       <Suspense fallback={<div className="w-full h-full flex items-center justify-center bg-cream"><div className="w-10 h-10 border-2 border-navy/20 border-t-navy rounded-full animate-spin" /></div>}>
                         <STLViewer
+                          key={modelUrl}
                           src={modelUrl}
                           alt={modelName}
                           autoRotate={true}
@@ -281,8 +293,8 @@ export default function Home() {
                         <ExternalLink className="w-4 h-4 text-navy/50" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-xs font-arabic text-navy/50 mb-1">
-                          أو أدخل رابط النموذج (GLB / GLTF / STL)
+                        <label className="block text-xs text-navy/50 mb-1">
+                          {t("enterUrl")}
                         </label>
                         <input
                           type="url"
@@ -303,7 +315,7 @@ export default function Home() {
               <motion.div key="settings" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.3 }}>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {/* Background Color */}
-                  <SettingsCard icon={<Palette className="w-5 h-5" />} title="لون الخلفية">
+                  <SettingsCard icon={<Palette className="w-5 h-5" />} title={t("bgColor")}>
                     <div className="flex items-center gap-2">
                       <input type="color" value={embedBgColor} onChange={(e) => setEmbedBgColor(e.target.value)} className="w-10 h-10 rounded-lg border border-navy/10 cursor-pointer" />
                       <input type="text" value={embedBgColor} onChange={(e) => setEmbedBgColor(e.target.value)} className="flex-1 bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-navy/15" dir="ltr" />
@@ -316,18 +328,18 @@ export default function Home() {
                   </SettingsCard>
 
                   {/* Auto Rotate */}
-                  <SettingsCard icon={<RotateCcw className="w-5 h-5" />} title="الدوران التلقائي">
-                    <ToggleSwitch checked={embedAutoRotate} onChange={setEmbedAutoRotate} label={embedAutoRotate ? "مفعّل" : "معطّل"} />
+                  <SettingsCard icon={<RotateCcw className="w-5 h-5" />} title={t("autoRotate")}>
+                    <ToggleSwitch checked={embedAutoRotate} onChange={setEmbedAutoRotate} labelOn={t("enabled")} labelOff={t("disabled")} />
                   </SettingsCard>
 
                   {/* AR */}
-                  <SettingsCard icon={<Cuboid className="w-5 h-5" />} title="الواقع المعزز (AR)">
-                    <ToggleSwitch checked={embedShowAR} onChange={setEmbedShowAR} label={embedShowAR ? "مفعّل" : "معطّل"} />
-                    <p className="text-[10px] font-arabic text-navy/40 mt-2">يعمل على الأجهزة المحمولة فقط</p>
+                  <SettingsCard icon={<Cuboid className="w-5 h-5" />} title={t("arMode")}>
+                    <ToggleSwitch checked={embedShowAR} onChange={setEmbedShowAR} labelOn={t("enabled")} labelOff={t("disabled")} />
+                    <p className="text-[10px] text-navy/40 mt-2">{t("arMobileOnly")}</p>
                   </SettingsCard>
 
                   {/* STL Color */}
-                  <SettingsCard icon={<Layers className="w-5 h-5" />} title="لون النموذج (STL)">
+                  <SettingsCard icon={<Layers className="w-5 h-5" />} title={t("modelColor")}>
                     <div className="flex items-center gap-2">
                       <input type="color" value={stlColor} onChange={(e) => setStlColor(e.target.value)} className="w-10 h-10 rounded-lg border border-navy/10 cursor-pointer" />
                       <input type="text" value={stlColor} onChange={(e) => setStlColor(e.target.value)} className="flex-1 bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-navy/15" dir="ltr" />
@@ -340,12 +352,12 @@ export default function Home() {
                   </SettingsCard>
 
                   {/* Wireframe */}
-                  <SettingsCard icon={<Grid3x3 className="w-5 h-5" />} title="الإطار السلكي (STL)">
-                    <ToggleSwitch checked={stlWireframe} onChange={setStlWireframe} label={stlWireframe ? "مفعّل" : "معطّل"} />
+                  <SettingsCard icon={<Grid3x3 className="w-5 h-5" />} title={t("wireframe")}>
+                    <ToggleSwitch checked={stlWireframe} onChange={setStlWireframe} labelOn={t("enabled")} labelOff={t("disabled")} />
                   </SettingsCard>
 
                   {/* Exposure */}
-                  <SettingsCard icon={<Sun className="w-5 h-5" />} title="الإضاءة">
+                  <SettingsCard icon={<Sun className="w-5 h-5" />} title={t("lighting")}>
                     <input
                       type="range"
                       min="0.3"
@@ -354,7 +366,7 @@ export default function Home() {
                       defaultValue="1"
                       className="w-full accent-navy"
                     />
-                    <p className="text-[10px] font-arabic text-navy/40 mt-1">تحكم بشدة الإضاءة على النموذج</p>
+                    <p className="text-[10px] text-navy/40 mt-1">{t("lightingDesc")}</p>
                   </SettingsCard>
                 </div>
               </motion.div>
@@ -367,21 +379,21 @@ export default function Home() {
                   <div className="space-y-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Ruler className="w-5 h-5 text-beige-dark" />
-                      <h3 className="font-arabic text-base font-semibold text-navy">إعدادات التضمين</h3>
+                      <h3 className="text-base font-semibold text-navy">{t("embedSettings")}</h3>
                     </div>
 
                     <div className="p-4 rounded-xl bg-beige/20 border border-navy/8 space-y-4">
                       <div className="flex items-center gap-2 mb-2">
                         <Ruler className="w-4 h-4 text-navy/40" />
-                        <span className="text-sm font-arabic font-medium text-navy">الأبعاد</span>
+                        <span className="text-sm font-medium text-navy">{t("dimensions")}</span>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-arabic text-navy/50 mb-1">العرض</label>
+                          <label className="block text-xs text-navy/50 mb-1">{t("width")}</label>
                           <input type="text" value={embedWidth} onChange={(e) => setEmbedWidth(e.target.value)} className="w-full bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-navy/15" dir="ltr" />
                         </div>
                         <div>
-                          <label className="block text-xs font-arabic text-navy/50 mb-1">الارتفاع</label>
+                          <label className="block text-xs text-navy/50 mb-1">{t("height")}</label>
                           <input type="text" value={embedHeight} onChange={(e) => setEmbedHeight(e.target.value)} className="w-full bg-white border border-navy/10 rounded-lg px-3 py-2 text-sm font-body focus:outline-none focus:ring-2 focus:ring-navy/15" dir="ltr" />
                         </div>
                       </div>
@@ -389,11 +401,11 @@ export default function Home() {
 
                     {/* Preview */}
                     <div className="p-4 rounded-xl bg-beige/20 border border-navy/8">
-                      <p className="text-xs font-arabic text-navy/50 mb-3">معاينة التضمين</p>
+                      <p className="text-xs text-navy/50 mb-3">{t("embedPreview")}</p>
                       <div className="rounded-lg overflow-hidden border border-navy/10" style={{ height: "250px" }}>
                         {isSTL ? (
                           <Suspense fallback={<div className="w-full h-full flex items-center justify-center"><div className="w-8 h-8 border-2 border-navy/20 border-t-navy rounded-full animate-spin" /></div>}>
-                            <STLViewer src={modelUrl} alt={modelName} autoRotate={embedAutoRotate} showControls={true} backgroundColor={embedBgColor} modelColor={stlColor} wireframe={stlWireframe} embedded={true} />
+                            <STLViewer key={`embed-${modelUrl}`} src={modelUrl} alt={modelName} autoRotate={embedAutoRotate} showControls={true} backgroundColor={embedBgColor} modelColor={stlColor} wireframe={stlWireframe} embedded={true} />
                           </Suspense>
                         ) : (
                           <ModelViewer src={modelUrl} alt={modelName} autoRotate={embedAutoRotate} showControls={true} showAR={embedShowAR} backgroundColor={embedBgColor} embedded={true} />
@@ -407,11 +419,11 @@ export default function Home() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <Code2 className="w-5 h-5 text-beige-dark" />
-                        <h3 className="font-arabic text-base font-semibold text-navy">كود التضمين</h3>
+                        <h3 className="text-base font-semibold text-navy">{t("embedCodeTitle")}</h3>
                       </div>
-                      <Button onClick={copyEmbedCode} variant="outline" className="btn-hover rounded-full text-xs font-arabic gap-1.5 border-navy/15 text-navy/70">
+                      <Button onClick={copyEmbedCode} variant="outline" className="btn-hover rounded-full text-xs gap-1.5 border-navy/15 text-navy/70">
                         {copied ? <Check className="w-3.5 h-3.5 text-green-600" /> : <Copy className="w-3.5 h-3.5" />}
-                        {copied ? "تم النسخ" : "نسخ الكود"}
+                        {copied ? t("copied") : t("copyCode")}
                       </Button>
                     </div>
 
@@ -420,7 +432,7 @@ export default function Home() {
                         <div className="w-2.5 h-2.5 rounded-full bg-red-500/60" />
                         <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/60" />
                         <div className="w-2.5 h-2.5 rounded-full bg-green-500/60" />
-                        <span className="text-xs text-beige/30 font-body mr-3">embed-code.html</span>
+                        <span className="text-xs text-beige/30 font-body ml-3">embed-code.html</span>
                       </div>
                       <pre className="p-4 text-sm font-mono text-beige/80 overflow-x-auto leading-relaxed" dir="ltr">
                         <code>{embedCode}</code>
@@ -430,8 +442,8 @@ export default function Home() {
                     {/* Tip */}
                     <div className="flex items-start gap-3 p-3 rounded-lg bg-beige/20 border border-navy/8">
                       <Lightbulb className="w-4 h-4 text-beige-dark shrink-0 mt-0.5" />
-                      <p className="text-xs font-arabic text-navy/50 leading-relaxed">
-                        انسخ هذا الكود والصقه في صفحة المنتج على موقعك. يمكنك تعديل الأبعاد والخلفية من الإعدادات.
+                      <p className="text-xs text-navy/50 leading-relaxed">
+                        {t("embedTip")}
                       </p>
                     </div>
                   </div>
@@ -442,19 +454,19 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ===== PRODUCTS SHOWCASE ===== */}
+      {/* ===== PRODUCTS SHOWCASE — NO antigravity here ===== */}
       <section className="py-16 md:py-24 relative z-10">
         <div className="container max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <div className="flex items-center justify-center gap-2 mb-4">
               <ShoppingBag className="w-5 h-5 text-beige-dark" />
-              <span className="font-arabic text-sm font-medium text-beige-dark">من متجر نقش</span>
+              <span className="text-sm font-medium text-beige-dark">{t("fromStore")}</span>
             </div>
-            <h2 className="font-arabic text-2xl md:text-3xl font-bold text-navy mb-3">
-              منتجاتنا المطبوعة ثلاثياً
+            <h2 className="text-2xl md:text-3xl font-bold text-navy mb-3">
+              {t("productsTitle")}
             </h2>
-            <p className="font-arabic text-sm text-navy/50 max-w-lg mx-auto">
-              تصفح منتجاتنا المصممة بعناية — قريباً ستتمكن من معاينة كل منتج بعرض ثلاثي الأبعاد تفاعلي
+            <p className="text-sm text-navy/50 max-w-lg mx-auto">
+              {t("productsDesc")}
             </p>
           </div>
 
@@ -471,36 +483,36 @@ export default function Home() {
                 <div className="relative aspect-square overflow-hidden bg-cream">
                   <img
                     src={product.image}
-                    alt={product.nameAr}
+                    alt={lang === "ar" ? product.nameAr : product.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     loading="lazy"
                   />
                   {/* 3D badge — placeholder for future */}
                   <div className="absolute top-2 right-2">
                     {product.has3D ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-navy text-cream text-[10px] font-arabic font-bold shadow-md">
+                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-navy text-cream text-[10px] font-bold shadow-md">
                         <Cuboid className="w-3 h-3" />
-                        عرض 3D
+                        {t("view3D")}
                       </span>
                     ) : (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-beige/80 text-navy/60 text-[10px] font-arabic backdrop-blur-sm">
+                      <span className="flex items-center gap-1 px-2 py-1 rounded-full bg-beige/80 text-navy/60 text-[10px] backdrop-blur-sm">
                         <Cuboid className="w-3 h-3" />
-                        قريباً 3D
+                        {t("soon3D")}
                       </span>
                     )}
                   </div>
                   {/* Sale badge */}
                   {product.oldPrice && (
                     <div className="absolute top-2 left-2">
-                      <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold">خصم</span>
+                      <span className="px-2 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-bold">{t("sale")}</span>
                     </div>
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="p-3">
-                  <h3 className="font-arabic text-xs md:text-sm font-semibold text-navy mb-1 line-clamp-1">
-                    {product.nameAr}
+                  <h3 className="text-xs md:text-sm font-semibold text-navy mb-1 line-clamp-1">
+                    {lang === "ar" ? product.nameAr : product.name}
                   </h3>
                   <div className="flex items-center gap-2">
                     <span className="font-body text-sm font-bold text-navy" dir="ltr">{product.price}</span>
@@ -520,39 +532,42 @@ export default function Home() {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <Button className="btn-hover bg-navy text-cream hover:bg-navy-light rounded-full px-8 py-5 text-sm font-arabic shadow-lg">
-                <ShoppingBag className="w-4 h-4 ml-2" />
-                زيارة المتجر الكامل
+              <Button className="btn-hover bg-navy text-cream hover:bg-navy-light rounded-full px-8 py-5 text-sm shadow-lg">
+                <ShoppingBag className={`w-4 h-4 ${isRTL ? "ml-2" : "mr-2"}`} />
+                {t("visitStore")}
               </Button>
             </a>
           </div>
         </div>
       </section>
 
-      {/* ===== HOW IT WORKS ===== */}
-      <section className="py-16 md:py-24 bg-navy/[0.03] relative z-10">
-        <div className="container max-w-4xl mx-auto">
+      {/* ===== HOW IT WORKS — with Antigravity effect ===== */}
+      <section className="py-16 md:py-24 bg-navy/[0.03] relative z-10 overflow-hidden">
+        {/* Antigravity floating elements — also in How It Works */}
+        <AntigravityEffect density={0.7} />
+
+        <div className="container max-w-4xl mx-auto relative z-10">
           <div className="text-center mb-14">
             <h2 className="font-display text-3xl md:text-4xl font-bold text-navy mb-4" dir="ltr">
-              How It Works
+              {t("howItWorks")}
             </h2>
-            <p className="font-arabic text-navy/60 text-base">
-              ثلاث خطوات بسيطة لعرض منتجاتك بشكل ثلاثي الأبعاد
+            <p className="text-navy/60 text-base">
+              {t("howItWorksDesc")}
             </p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { step: "01", title: "جهّز النموذج", description: "صدّر نموذجك ثلاثي الأبعاد بصيغة GLB أو GLTF أو STL من أي برنامج تصميم", icon: <Box className="w-6 h-6" /> },
-              { step: "02", title: "خصّص العارض", description: "اختر الإعدادات المناسبة — الخلفية والدوران والأبعاد واللون", icon: <Settings2 className="w-6 h-6" /> },
-              { step: "03", title: "ضمّن في موقعك", description: "انسخ كود التضمين والصقه في صفحة المنتج على موقعك", icon: <Code2 className="w-6 h-6" /> },
+              { step: "01", title: t("step1Title"), description: t("step1Desc"), icon: <Box className="w-6 h-6" /> },
+              { step: "02", title: t("step2Title"), description: t("step2Desc"), icon: <Settings2 className="w-6 h-6" /> },
+              { step: "03", title: t("step3Title"), description: t("step3Desc"), icon: <Code2 className="w-6 h-6" /> },
             ].map((item) => (
               <div key={item.step} className="card-hover relative p-6 rounded-2xl bg-white border border-navy/8 shadow-sm">
                 <span className="absolute top-4 left-4 font-display text-5xl font-bold text-beige/60">{item.step}</span>
                 <div className="relative z-10">
                   <div className="w-12 h-12 rounded-xl bg-navy/8 flex items-center justify-center text-navy mb-4">{item.icon}</div>
-                  <h3 className="font-arabic text-lg font-semibold text-navy mb-2">{item.title}</h3>
-                  <p className="font-arabic text-sm text-navy/50 leading-relaxed">{item.description}</p>
+                  <h3 className="text-lg font-semibold text-navy mb-2">{item.title}</h3>
+                  <p className="text-sm text-navy/50 leading-relaxed">{item.description}</p>
                 </div>
               </div>
             ))}
@@ -564,21 +579,21 @@ export default function Home() {
       <section className="py-16 md:py-24 relative z-10">
         <div className="container max-w-4xl mx-auto">
           <div className="text-center mb-14">
-            <h2 className="font-arabic text-2xl md:text-3xl font-bold text-navy mb-4">الصيغ المدعومة</h2>
-            <p className="font-arabic text-navy/50 text-sm">يدعم العارض أشهر صيغ النماذج ثلاثية الأبعاد</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-navy mb-4">{t("formatsTitle")}</h2>
+            <p className="text-navy/50 text-sm">{t("formatsDesc")}</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {[
-              { format: "GLB", desc: "Binary glTF", recommended: true },
-              { format: "GLTF", desc: "GL Transmission", recommended: true },
-              { format: "STL", desc: "Stereolithography", recommended: true },
-              { format: "USDZ", desc: "Apple AR", recommended: false },
-              { format: "OBJ", desc: "Wavefront", recommended: false },
+              { format: "GLB", desc: "Binary glTF", rec: true },
+              { format: "GLTF", desc: "GL Transmission", rec: true },
+              { format: "STL", desc: "Stereolithography", rec: true },
+              { format: "USDZ", desc: "Apple AR", rec: false },
+              { format: "OBJ", desc: "Wavefront", rec: false },
             ].map((item) => (
-              <div key={item.format} className={`card-hover relative p-5 rounded-xl border text-center ${item.recommended ? "bg-navy/5 border-navy/15" : "bg-beige/10 border-navy/8"}`}>
-                {item.recommended && (
-                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-navy text-cream text-[10px] font-arabic font-bold">موصى به</span>
+              <div key={item.format} className={`card-hover relative p-5 rounded-xl border text-center ${item.rec ? "bg-navy/5 border-navy/15" : "bg-beige/10 border-navy/8"}`}>
+                {item.rec && (
+                  <span className="absolute -top-2 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-navy text-cream text-[10px] font-bold">{t("recommended")}</span>
                 )}
                 <p className="font-body text-xl font-bold text-navy mb-1" dir="ltr">.{item.format}</p>
                 <p className="font-body text-xs text-navy/40" dir="ltr">{item.desc}</p>
@@ -591,22 +606,22 @@ export default function Home() {
       {/* ===== FOOTER ===== */}
       <footer className="py-10 border-t border-navy/8 relative z-10 bg-white/50 backdrop-blur-sm">
         <div className="container max-w-4xl mx-auto text-center">
-          <img src={LOGO_DARK} alt="نقش" className="h-10 mx-auto mb-3 object-contain" />
-          <p className="font-arabic text-xs text-navy/40 mb-3">طبع بحب بأيدي سورية</p>
+          <img src={LOGO_DARK} alt="نقش" className="h-14 mx-auto mb-3 object-contain" />
+          <p className="text-xs text-navy/40 mb-3">{t("footerTagline")}</p>
           <div className="flex items-center justify-center gap-4">
-            <a href="https://nqsh-3d.com" target="_blank" rel="noopener noreferrer" className="btn-hover inline-flex items-center gap-1 text-xs font-arabic text-navy/50 hover:text-navy transition-colors px-3 py-1.5 rounded-full bg-beige/20">
+            <a href="https://nqsh-3d.com" target="_blank" rel="noopener noreferrer" className="btn-hover inline-flex items-center gap-1 text-xs text-navy/50 hover:text-navy transition-colors px-3 py-1.5 rounded-full bg-beige/20">
               <ExternalLink className="w-3 h-3" />
-              زيارة المتجر
+              {t("visitStoreShort")}
             </a>
-            <a href="https://instagram.com/nqsh_3d_printing" target="_blank" rel="noopener noreferrer" className="btn-hover inline-flex items-center gap-1 text-xs font-arabic text-navy/50 hover:text-navy transition-colors px-3 py-1.5 rounded-full bg-beige/20">
+            <a href="https://instagram.com/nqsh_3d_printing" target="_blank" rel="noopener noreferrer" className="btn-hover inline-flex items-center gap-1 text-xs text-navy/50 hover:text-navy transition-colors px-3 py-1.5 rounded-full bg-beige/20">
               <ExternalLink className="w-3 h-3" />
-              انستغرام
+              {t("instagram")}
             </a>
           </div>
         </div>
       </footer>
 
-      {/* Hidden file input — now accepts STL too */}
+      {/* Hidden file input — accepts STL too */}
       <input ref={fileInputRef} type="file" accept=".glb,.gltf,.stl" className="hidden" onChange={handleFileUpload} />
     </div>
   );
@@ -619,17 +634,17 @@ function SettingsCard({ icon, title, children }: { icon: React.ReactNode; title:
     <div className="card-hover p-5 rounded-xl bg-white border border-navy/8 shadow-sm">
       <div className="flex items-center gap-2 mb-4">
         <div className="text-beige-dark">{icon}</div>
-        <h4 className="font-arabic text-sm font-semibold text-navy">{title}</h4>
+        <h4 className="text-sm font-semibold text-navy">{title}</h4>
       </div>
       {children}
     </div>
   );
 }
 
-function ToggleSwitch({ checked, onChange, label }: { checked: boolean; onChange: (v: boolean) => void; label: string }) {
+function ToggleSwitch({ checked, onChange, labelOn, labelOff }: { checked: boolean; onChange: (v: boolean) => void; labelOn: string; labelOff: string }) {
   return (
     <div className="flex items-center justify-between">
-      <span className="text-sm font-arabic text-navy/60">{label}</span>
+      <span className="text-sm text-navy/60">{checked ? labelOn : labelOff}</span>
       <button
         onClick={() => onChange(!checked)}
         className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${checked ? "bg-navy" : "bg-beige"}`}
