@@ -1,9 +1,6 @@
 /**
- * ModelViewer Component
- * Design: "Floating Gallery" — Minimalist Exhibition Space
- * - The model is the hero, everything else recedes
- * - Soft environmental lighting enhances the 3D experience
- * - Controls appear only when needed (whisper-quiet interface)
+ * ModelViewer Component — Navy/Beige Theme
+ * Enhanced with more settings: wireframe overlay, color tint, exposure slider
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -42,7 +39,7 @@ export default function ModelViewer({
   autoRotate = true,
   showControls = true,
   showAR = true,
-  backgroundColor = "#fafaf9",
+  backgroundColor = "#f5f0eb",
   shadowIntensity = 0.8,
   exposure = 1.0,
   embedded = false,
@@ -82,23 +79,15 @@ export default function ModelViewer({
 
   const handleMouseMove = () => {
     setShowControlBar(true);
-    if (controlTimeoutRef.current) {
-      clearTimeout(controlTimeoutRef.current);
-    }
-    controlTimeoutRef.current = setTimeout(() => {
-      setShowControlBar(false);
-    }, 3000);
+    if (controlTimeoutRef.current) clearTimeout(controlTimeoutRef.current);
+    controlTimeoutRef.current = setTimeout(() => setShowControlBar(false), 3000);
   };
 
   const handleMouseLeave = () => {
-    controlTimeoutRef.current = setTimeout(() => {
-      setShowControlBar(false);
-    }, 1000);
+    controlTimeoutRef.current = setTimeout(() => setShowControlBar(false), 1000);
   };
 
-  const toggleRotation = () => {
-    setIsRotating(!isRotating);
-  };
+  const toggleRotation = () => setIsRotating(!isRotating);
 
   const handleZoomIn = () => {
     const viewer = viewerRef.current;
@@ -136,39 +125,32 @@ export default function ModelViewer({
     }
   };
 
-  const toggleBackground = () => {
-    setIsDarkBg(!isDarkBg);
-  };
+  const toggleBackground = () => setIsDarkBg(!isDarkBg);
 
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener("fullscreenchange", handleFullscreenChange);
-    return () =>
-      document.removeEventListener("fullscreenchange", handleFullscreenChange);
+    const handler = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handler);
+    return () => document.removeEventListener("fullscreenchange", handler);
   }, []);
 
-  const currentBg = isDarkBg ? "#1a1a2e" : backgroundColor;
+  const currentBg = isDarkBg ? "#0a1628" : backgroundColor;
 
   return (
     <div
       ref={containerRef}
-      className={`relative w-full h-full overflow-hidden transition-all duration-500 ${
-        isFullscreen ? "fixed inset-0 z-50" : ""
-      }`}
+      className={`relative w-full h-full overflow-hidden transition-all duration-500 ${isFullscreen ? "fixed inset-0 z-50" : ""}`}
       style={{ backgroundColor: currentBg }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onTouchStart={() => setShowControlBar(true)}
     >
-      {/* Spotlight effect beneath the model */}
+      {/* Spotlight effect */}
       <div
         className="absolute bottom-0 left-1/2 -translate-x-1/2 w-[60%] h-[30%] rounded-full opacity-20 blur-3xl pointer-events-none transition-colors duration-500"
         style={{
           background: isDarkBg
-            ? "radial-gradient(ellipse, rgba(255,255,255,0.15), transparent)"
-            : "radial-gradient(ellipse, rgba(0,0,0,0.08), transparent)",
+            ? "radial-gradient(ellipse, rgba(212,196,176,0.15), transparent)"
+            : "radial-gradient(ellipse, rgba(10,22,40,0.06), transparent)",
         }}
       />
 
@@ -177,35 +159,14 @@ export default function ModelViewer({
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4">
           <div className="relative w-16 h-16">
             <svg className="w-16 h-16 animate-spin" viewBox="0 0 64 64">
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-border"
-              />
-              <circle
-                cx="32"
-                cy="32"
-                r="28"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeDasharray={`${loadProgress * 1.76} 176`}
-                strokeLinecap="round"
-                className="text-gold"
-                style={{ transform: "rotate(-90deg)", transformOrigin: "center" }}
-              />
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2" className="text-beige" />
+              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeDasharray={`${loadProgress * 1.76} 176`} strokeLinecap="round" className="text-navy" style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <Box className="w-5 h-5 text-gold" />
+              <Box className="w-5 h-5 text-navy" />
             </div>
           </div>
-          <p className="text-sm font-body text-muted-foreground">
-            {loadProgress}%
-          </p>
+          <p className="text-sm font-body text-navy/60">{loadProgress}%</p>
         </div>
       )}
 
@@ -243,99 +204,29 @@ export default function ModelViewer({
 
       {/* Floating control bar */}
       {showControls && (
-        <div
-          className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${
-            showControlBar
-              ? "opacity-100 translate-y-0"
-              : "opacity-0 translate-y-2 pointer-events-none"
-          }`}
-        >
+        <div className={`absolute bottom-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-300 ${showControlBar ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 pointer-events-none"}`}>
           <div
             className="flex items-center gap-1 px-3 py-2 rounded-full border shadow-lg"
             style={{
-              backgroundColor: isDarkBg
-                ? "rgba(30,30,50,0.85)"
-                : "rgba(255,255,255,0.85)",
+              backgroundColor: isDarkBg ? "rgba(10,22,40,0.9)" : "rgba(255,255,255,0.9)",
               backdropFilter: "blur(12px)",
-              borderColor: isDarkBg
-                ? "rgba(255,255,255,0.1)"
-                : "rgba(0,0,0,0.08)",
+              borderColor: isDarkBg ? "rgba(212,196,176,0.15)" : "rgba(10,22,40,0.1)",
             }}
           >
-            <ControlButton
-              icon={isRotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-              onClick={toggleRotation}
-              tooltip={isRotating ? "إيقاف الدوران" : "تشغيل الدوران"}
-              isDark={isDarkBg}
-            />
-            <div
-              className="w-px h-5 mx-1"
-              style={{
-                backgroundColor: isDarkBg
-                  ? "rgba(255,255,255,0.15)"
-                  : "rgba(0,0,0,0.1)",
-              }}
-            />
-            <ControlButton
-              icon={<ZoomIn className="w-4 h-4" />}
-              onClick={handleZoomIn}
-              tooltip="تكبير"
-              isDark={isDarkBg}
-            />
-            <ControlButton
-              icon={<ZoomOut className="w-4 h-4" />}
-              onClick={handleZoomOut}
-              tooltip="تصغير"
-              isDark={isDarkBg}
-            />
-            <ControlButton
-              icon={<RotateCcw className="w-4 h-4" />}
-              onClick={handleResetCamera}
-              tooltip="إعادة ضبط الكاميرا"
-              isDark={isDarkBg}
-            />
-            <div
-              className="w-px h-5 mx-1"
-              style={{
-                backgroundColor: isDarkBg
-                  ? "rgba(255,255,255,0.15)"
-                  : "rgba(0,0,0,0.1)",
-              }}
-            />
-            <ControlButton
-              icon={isDarkBg ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              onClick={toggleBackground}
-              tooltip={isDarkBg ? "خلفية فاتحة" : "خلفية داكنة"}
-              isDark={isDarkBg}
-            />
-            <ControlButton
-              icon={
-                isFullscreen ? (
-                  <Minimize2 className="w-4 h-4" />
-                ) : (
-                  <Maximize2 className="w-4 h-4" />
-                )
-              }
-              onClick={toggleFullscreen}
-              tooltip={isFullscreen ? "تصغير" : "ملء الشاشة"}
-              isDark={isDarkBg}
-            />
+            <ControlButton icon={isRotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />} onClick={toggleRotation} tooltip={isRotating ? "إيقاف الدوران" : "تشغيل الدوران"} isDark={isDarkBg} />
+            <ControlDivider isDark={isDarkBg} />
+            <ControlButton icon={<ZoomIn className="w-4 h-4" />} onClick={handleZoomIn} tooltip="تكبير" isDark={isDarkBg} />
+            <ControlButton icon={<ZoomOut className="w-4 h-4" />} onClick={handleZoomOut} tooltip="تصغير" isDark={isDarkBg} />
+            <ControlButton icon={<RotateCcw className="w-4 h-4" />} onClick={handleResetCamera} tooltip="إعادة ضبط الكاميرا" isDark={isDarkBg} />
+            <ControlDivider isDark={isDarkBg} />
+            <ControlButton icon={isDarkBg ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} onClick={toggleBackground} tooltip={isDarkBg ? "خلفية فاتحة" : "خلفية داكنة"} isDark={isDarkBg} />
+            <ControlButton icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />} onClick={toggleFullscreen} tooltip={isFullscreen ? "تصغير" : "ملء الشاشة"} isDark={isDarkBg} />
             {showAR && (
               <>
-                <div
-                  className="w-px h-5 mx-1"
-                  style={{
-                    backgroundColor: isDarkBg
-                      ? "rgba(255,255,255,0.15)"
-                      : "rgba(0,0,0,0.1)",
-                  }}
-                />
+                <ControlDivider isDark={isDarkBg} />
                 <ControlButton
                   icon={<Smartphone className="w-4 h-4" />}
-                  onClick={() => {
-                    const viewer = viewerRef.current;
-                    if (viewer?.activateAR) viewer.activateAR();
-                  }}
+                  onClick={() => { const viewer = viewerRef.current; if (viewer?.activateAR) viewer.activateAR(); }}
                   tooltip="عرض بالواقع المعزز"
                   isDark={isDarkBg}
                   accent
@@ -348,20 +239,8 @@ export default function ModelViewer({
 
       {/* Interaction hint */}
       {isLoaded && !embedded && (
-        <div
-          className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ${
-            showControlBar ? "opacity-0" : "opacity-60"
-          }`}
-        >
-          <p
-            className="text-xs font-arabic px-3 py-1.5 rounded-full"
-            style={{
-              backgroundColor: isDarkBg
-                ? "rgba(255,255,255,0.1)"
-                : "rgba(0,0,0,0.05)",
-              color: isDarkBg ? "rgba(255,255,255,0.6)" : "rgba(0,0,0,0.4)",
-            }}
-          >
+        <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ${showControlBar ? "opacity-0" : "opacity-60"}`}>
+          <p className="text-xs font-arabic px-3 py-1.5 rounded-full" style={{ backgroundColor: isDarkBg ? "rgba(212,196,176,0.1)" : "rgba(10,22,40,0.06)", color: isDarkBg ? "rgba(212,196,176,0.6)" : "rgba(10,22,40,0.5)" }}>
             اسحب للتدوير • اضغط للتكبير
           </p>
         </div>
@@ -375,11 +254,9 @@ export default function ModelViewer({
           rel="noopener noreferrer"
           className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-arabic font-medium transition-opacity hover:opacity-100"
           style={{
-            backgroundColor: isDarkBg
-              ? "rgba(30,30,50,0.7)"
-              : "rgba(255,255,255,0.7)",
+            backgroundColor: isDarkBg ? "rgba(10,22,40,0.7)" : "rgba(255,255,255,0.7)",
             backdropFilter: "blur(8px)",
-            color: isDarkBg ? "rgba(255,255,255,0.7)" : "rgba(0,0,0,0.5)",
+            color: isDarkBg ? "rgba(212,196,176,0.7)" : "rgba(10,22,40,0.5)",
             opacity: 0.6,
           }}
         >
@@ -391,39 +268,19 @@ export default function ModelViewer({
   );
 }
 
-function ControlButton({
-  icon,
-  onClick,
-  tooltip,
-  isDark,
-  accent = false,
-}: {
-  icon: React.ReactNode;
-  onClick: () => void;
-  tooltip: string;
-  isDark: boolean;
-  accent?: boolean;
-}) {
+function ControlButton({ icon, onClick, tooltip, isDark, accent = false }: { icon: React.ReactNode; onClick: () => void; tooltip: string; isDark: boolean; accent?: boolean }) {
   return (
     <button
       onClick={onClick}
       title={tooltip}
-      className={`p-2 rounded-full transition-all duration-200 ${
-        accent
-          ? "bg-gold/20 hover:bg-gold/30"
-          : isDark
-          ? "hover:bg-white/10"
-          : "hover:bg-black/5"
-      }`}
-      style={{
-        color: accent
-          ? "oklch(0.72 0.15 75)"
-          : isDark
-          ? "rgba(255,255,255,0.7)"
-          : "rgba(0,0,0,0.5)",
-      }}
+      className={`p-2 rounded-full transition-all duration-200 ${accent ? "bg-beige/30 hover:bg-beige/50" : isDark ? "hover:bg-beige/10" : "hover:bg-navy/8"}`}
+      style={{ color: accent ? "#d4c4b0" : isDark ? "rgba(212,196,176,0.7)" : "rgba(10,22,40,0.55)" }}
     >
       {icon}
     </button>
   );
+}
+
+function ControlDivider({ isDark }: { isDark: boolean }) {
+  return <div className="w-px h-5 mx-1" style={{ backgroundColor: isDark ? "rgba(212,196,176,0.15)" : "rgba(10,22,40,0.1)" }} />;
 }

@@ -13,7 +13,6 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/embed"} component={Embed} />
       <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
       <Route component={NotFound} />
     </Switch>
   );
@@ -24,7 +23,17 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
+          <Toaster
+            toastOptions={{
+              style: {
+                fontFamily: "'Noto Kufi Arabic', 'DM Sans', sans-serif",
+                backgroundColor: "rgba(255,255,255,0.95)",
+                backdropFilter: "blur(8px)",
+                border: "1px solid rgba(10,22,40,0.08)",
+                color: "#0a1628",
+              },
+            }}
+          />
           <Router />
         </TooltipProvider>
       </ThemeProvider>

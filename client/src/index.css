@@ -40,48 +40,55 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  /* Typography */
   --font-display: 'Playfair Display', serif;
   --font-body: 'DM Sans', sans-serif;
   --font-arabic: 'Noto Kufi Arabic', sans-serif;
-  --color-gold: oklch(0.72 0.15 75);
-  --color-gold-light: oklch(0.85 0.1 75);
-  --color-gold-dark: oklch(0.55 0.15 75);
+  /* Brand colors — Navy (#0a1628) + Beige (#d4c4b0) */
+  --color-navy: oklch(0.18 0.04 260);
+  --color-navy-light: oklch(0.25 0.04 260);
+  --color-navy-dark: oklch(0.12 0.04 260);
+  --color-beige: oklch(0.82 0.03 75);
+  --color-beige-light: oklch(0.92 0.02 75);
+  --color-beige-dark: oklch(0.72 0.04 75);
+  --color-sand: oklch(0.78 0.04 70);
+  --color-cream: oklch(0.96 0.01 80);
 }
 
 :root {
-  --primary: oklch(0.55 0.15 75);
-  --primary-foreground: oklch(0.99 0 0);
-  --sidebar-primary: oklch(0.6 0.15 75);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --chart-1: oklch(0.72 0.15 75);
-  --chart-2: oklch(0.6 0.12 75);
-  --chart-3: oklch(0.5 0.1 75);
-  --chart-4: oklch(0.4 0.08 75);
-  --chart-5: oklch(0.3 0.06 75);
+  --primary: oklch(0.18 0.04 260);
+  --primary-foreground: oklch(0.96 0.01 80);
+  --sidebar-primary: oklch(0.18 0.04 260);
+  --sidebar-primary-foreground: oklch(0.96 0.01 80);
+  --chart-1: oklch(0.82 0.03 75);
+  --chart-2: oklch(0.72 0.04 75);
+  --chart-3: oklch(0.62 0.04 75);
+  --chart-4: oklch(0.52 0.04 75);
+  --chart-5: oklch(0.42 0.04 75);
   --radius: 0.75rem;
-  --background: oklch(0.995 0.002 90);
-  --foreground: oklch(0.18 0.01 75);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.01 75);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.01 75);
-  --secondary: oklch(0.97 0.005 90);
-  --secondary-foreground: oklch(0.35 0.01 75);
-  --muted: oklch(0.96 0.005 90);
-  --muted-foreground: oklch(0.5 0.01 75);
-  --accent: oklch(0.96 0.005 90);
-  --accent-foreground: oklch(0.18 0.01 75);
+  --background: oklch(0.97 0.008 80);
+  --foreground: oklch(0.18 0.04 260);
+  --card: oklch(0.99 0.005 80);
+  --card-foreground: oklch(0.18 0.04 260);
+  --popover: oklch(0.99 0.005 80);
+  --popover-foreground: oklch(0.18 0.04 260);
+  --secondary: oklch(0.93 0.015 75);
+  --secondary-foreground: oklch(0.25 0.04 260);
+  --muted: oklch(0.94 0.012 75);
+  --muted-foreground: oklch(0.45 0.03 260);
+  --accent: oklch(0.82 0.03 75);
+  --accent-foreground: oklch(0.18 0.04 260);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.005 90);
-  --input: oklch(0.92 0.005 90);
-  --ring: oklch(0.72 0.15 75);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.18 0.01 75);
-  --sidebar-accent: oklch(0.96 0.005 90);
-  --sidebar-accent-foreground: oklch(0.18 0.01 75);
-  --sidebar-border: oklch(0.92 0.005 90);
-  --sidebar-ring: oklch(0.72 0.15 75);
+  --border: oklch(0.88 0.015 75);
+  --input: oklch(0.90 0.012 75);
+  --ring: oklch(0.25 0.04 260);
+  --sidebar: oklch(0.97 0.008 80);
+  --sidebar-foreground: oklch(0.18 0.04 260);
+  --sidebar-accent: oklch(0.94 0.012 75);
+  --sidebar-accent-foreground: oklch(0.18 0.04 260);
+  --sidebar-border: oklch(0.88 0.015 75);
+  --sidebar-ring: oklch(0.25 0.04 260);
 }
 
 @layer base {
@@ -145,6 +152,28 @@
   .font-arabic {
     font-family: 'Noto Kufi Arabic', sans-serif;
   }
+
+  /* Labak-style button hover effects */
+  .btn-hover {
+    transition: all 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .btn-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px -6px rgba(10, 22, 40, 0.25), 0 4px 12px -4px rgba(10, 22, 40, 0.15);
+  }
+  .btn-hover:active {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px -4px rgba(10, 22, 40, 0.2);
+  }
+
+  /* Card hover effect */
+  .card-hover {
+    transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .card-hover:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 20px 40px -12px rgba(10, 22, 40, 0.18), 0 8px 20px -8px rgba(10, 22, 40, 0.1);
+  }
 }
 
 /* Model Viewer Custom Styles */
@@ -158,7 +187,7 @@ model-viewer::part(default-progress-bar) {
   display: none;
 }
 
-/* Custom scrollbar */
+/* Custom scrollbar — navy themed */
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -168,10 +197,10 @@ model-viewer::part(default-progress-bar) {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: oklch(0.72 0.15 75 / 0.3);
+  background: oklch(0.82 0.03 75 / 0.5);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: oklch(0.72 0.15 75 / 0.5);
+  background: oklch(0.72 0.04 75 / 0.7);
 }
