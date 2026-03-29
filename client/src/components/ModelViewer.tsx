@@ -1,7 +1,9 @@
 /**
  * ModelViewer Component — Navy/Beige Theme
- * FIX: Now properly reloads when src changes (upload or URL input)
- * Uses key={src} on model-viewer to force re-mount on new model
+ * 
+ * FINAL APPROACH: Render model-viewer WITHOUT src in JSX.
+ * Use useEffect to directly set src on the DOM element after mount.
+ * This completely bypasses React's prop system and avoids Lit update conflicts.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -55,39 +57,81 @@ export default function ModelViewer({
   const [isDarkBg, setIsDarkBg] = useState(false);
   const controlTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset loaded state when src changes
-  useEffect(() => {
-    setIsLoaded(false);
-    setLoadProgress(0);
-  }, [src]);
-
+  // Set up event listeners on mount
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer) return;
 
-    const handleLoad = () => {
+    let hasLoaded = false;
+
+    const markLoaded = () => {
+      if (hasLoaded) return;
+      hasLoaded = true;
+      console.log("[ModelViewer] Model loaded");
       setIsLoaded(true);
       setLoadProgress(100);
     };
 
+    const handleLoad = () => {
+      console.log("[ModelViewer] load event");
+      markLoaded();
+    };
+
     const handleProgress = (e: any) => {
       const progress = e.detail?.totalProgress ?? 0;
-      setLoadProgress(Math.round(progress * 100));
+      const pct = Math.round(progress * 100);
+      setLoadProgress(pct);
+      if (pct >= 100) {
+        setTimeout(markLoaded, 200);
+      }
     };
 
     const handleError = (e: any) => {
-      console.error("Model viewer error:", e);
+      console.error("[ModelViewer] error:", e);
+      markLoaded();
     };
 
     viewer.addEventListener("load", handleLoad);
     viewer.addEventListener("progress", handleProgress);
     viewer.addEventListener("error", handleError);
 
+    // Fallback: check if model is loaded by inspecting the element
+    const checkLoaded = setInterval(() => {
+      try {
+        if (viewer.loaded || viewer.modelIsVisible) {
+          markLoaded();
+        }
+      } catch {}
+    }, 500);
+
+    // Ultimate fallback
+    const timeout = setTimeout(() => {
+      console.log("[ModelViewer] fallback timeout");
+      markLoaded();
+    }, 15000);
+
     return () => {
       viewer.removeEventListener("load", handleLoad);
       viewer.removeEventListener("progress", handleProgress);
       viewer.removeEventListener("error", handleError);
+      clearInterval(checkLoaded);
+      clearTimeout(timeout);
     };
+  }, []);
+
+  // When src changes, directly set it on the DOM element
+  // This bypasses React's JSX prop system and avoids Lit conflicts
+  useEffect(() => {
+    const viewer = viewerRef.current;
+    if (!viewer || !src) return;
+
+    console.log("[ModelViewer] Setting src:", src);
+    setIsLoaded(false);
+    setLoadProgress(0);
+
+    // Directly set the src attribute on the web component
+    // This is the key: we bypass React's prop system entirely
+    viewer.src = src;
   }, [src]);
 
   const handleMouseMove = () => {
@@ -100,35 +144,19 @@ export default function ModelViewer({
     controlTimeoutRef.current = setTimeout(() => setShowControlBar(false), 1000);
   };
 
-  const toggleRotation = () => setIsRotating(!isRotating);
-
   const handleZoomIn = () => {
-    const viewer = viewerRef.current;
-    if (viewer) {
-      try {
-        const fov = viewer.getFieldOfView();
-        viewer.fieldOfView = `${Math.max(10, fov - 5)}deg`;
-      } catch { /* ignore */ }
-    }
+    const v = viewerRef.current;
+    if (v) { try { const fov = v.getFieldOfView(); v.fieldOfView = `${Math.max(10, fov - 5)}deg`; } catch {} }
   };
 
   const handleZoomOut = () => {
-    const viewer = viewerRef.current;
-    if (viewer) {
-      try {
-        const fov = viewer.getFieldOfView();
-        viewer.fieldOfView = `${Math.min(90, fov + 5)}deg`;
-      } catch { /* ignore */ }
-    }
+    const v = viewerRef.current;
+    if (v) { try { const fov = v.getFieldOfView(); v.fieldOfView = `${Math.min(90, fov + 5)}deg`; } catch {} }
   };
 
   const handleResetCamera = () => {
-    const viewer = viewerRef.current;
-    if (viewer) {
-      viewer.cameraOrbit = "auto auto auto";
-      viewer.cameraTarget = "auto auto auto";
-      viewer.fieldOfView = "auto";
-    }
+    const v = viewerRef.current;
+    if (v) { v.cameraOrbit = "auto auto auto"; v.cameraTarget = "auto auto auto"; v.fieldOfView = "auto"; }
   };
 
   const toggleFullscreen = () => {
@@ -141,8 +169,6 @@ export default function ModelViewer({
       setIsFullscreen(false);
     }
   };
-
-  const toggleBackground = () => setIsDarkBg(!isDarkBg);
 
   useEffect(() => {
     const handler = () => setIsFullscreen(!!document.fullscreenElement);
@@ -172,26 +198,29 @@ export default function ModelViewer({
       />
 
       {/* Loading overlay */}
-      {!isLoaded && (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4" style={{ backgroundColor: currentBg }}>
-          <div className="relative w-16 h-16">
-            <svg className="w-16 h-16 animate-spin" viewBox="0 0 64 64">
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2" className="text-beige" />
-              <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeDasharray={`${loadProgress * 1.76} 176`} strokeLinecap="round" className="text-navy" style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
-            </svg>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <Box className="w-5 h-5 text-navy" />
-            </div>
+      <div
+        className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 transition-opacity duration-700"
+        style={{
+          backgroundColor: currentBg,
+          opacity: isLoaded ? 0 : 1,
+          pointerEvents: isLoaded ? "none" : "auto",
+        }}
+      >
+        <div className="relative w-16 h-16">
+          <svg className="w-16 h-16 animate-spin" viewBox="0 0 64 64">
+            <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2" className="text-beige" />
+            <circle cx="32" cy="32" r="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeDasharray={`${loadProgress * 1.76} 176`} strokeLinecap="round" className="text-navy" style={{ transform: "rotate(-90deg)", transformOrigin: "center" }} />
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Box className="w-5 h-5 text-navy" />
           </div>
-          <p className="text-sm font-body text-navy/60">{loadProgress}%</p>
         </div>
-      )}
+        <p className="text-sm font-body text-navy/60">{loadProgress}%</p>
+      </div>
 
-      {/* The model-viewer element — key={src} forces re-mount on new model */}
+      {/* model-viewer — NO src in JSX, set via useEffect instead */}
       <model-viewer
-        key={src}
         ref={viewerRef}
-        src={src}
         alt={alt}
         poster={poster}
         camera-controls
@@ -229,21 +258,21 @@ export default function ModelViewer({
               borderColor: isDarkBg ? "rgba(212,196,176,0.15)" : "rgba(10,22,40,0.1)",
             }}
           >
-            <ControlButton icon={isRotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />} onClick={toggleRotation} tooltip={isRotating ? "إيقاف الدوران" : "تشغيل الدوران"} isDark={isDarkBg} />
+            <ControlButton icon={isRotating ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />} onClick={() => setIsRotating(!isRotating)} tooltip={isRotating ? "Pause" : "Play"} isDark={isDarkBg} />
             <ControlDivider isDark={isDarkBg} />
-            <ControlButton icon={<ZoomIn className="w-4 h-4" />} onClick={handleZoomIn} tooltip="تكبير" isDark={isDarkBg} />
-            <ControlButton icon={<ZoomOut className="w-4 h-4" />} onClick={handleZoomOut} tooltip="تصغير" isDark={isDarkBg} />
-            <ControlButton icon={<RotateCcw className="w-4 h-4" />} onClick={handleResetCamera} tooltip="إعادة ضبط الكاميرا" isDark={isDarkBg} />
+            <ControlButton icon={<ZoomIn className="w-4 h-4" />} onClick={handleZoomIn} tooltip="Zoom In" isDark={isDarkBg} />
+            <ControlButton icon={<ZoomOut className="w-4 h-4" />} onClick={handleZoomOut} tooltip="Zoom Out" isDark={isDarkBg} />
+            <ControlButton icon={<RotateCcw className="w-4 h-4" />} onClick={handleResetCamera} tooltip="Reset" isDark={isDarkBg} />
             <ControlDivider isDark={isDarkBg} />
-            <ControlButton icon={isDarkBg ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} onClick={toggleBackground} tooltip={isDarkBg ? "خلفية فاتحة" : "خلفية داكنة"} isDark={isDarkBg} />
-            <ControlButton icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />} onClick={toggleFullscreen} tooltip={isFullscreen ? "تصغير" : "ملء الشاشة"} isDark={isDarkBg} />
+            <ControlButton icon={isDarkBg ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />} onClick={() => setIsDarkBg(!isDarkBg)} tooltip="Toggle BG" isDark={isDarkBg} />
+            <ControlButton icon={isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />} onClick={toggleFullscreen} tooltip="Fullscreen" isDark={isDarkBg} />
             {showAR && (
               <>
                 <ControlDivider isDark={isDarkBg} />
                 <ControlButton
                   icon={<Smartphone className="w-4 h-4" />}
-                  onClick={() => { const viewer = viewerRef.current; if (viewer?.activateAR) viewer.activateAR(); }}
-                  tooltip="عرض بالواقع المعزز"
+                  onClick={() => { const v = viewerRef.current; if (v?.activateAR) v.activateAR(); }}
+                  tooltip="AR View"
                   isDark={isDarkBg}
                   accent
                 />
@@ -256,8 +285,8 @@ export default function ModelViewer({
       {/* Interaction hint */}
       {isLoaded && !embedded && (
         <div className={`absolute top-4 left-1/2 -translate-x-1/2 z-30 transition-all duration-500 ${showControlBar ? "opacity-0" : "opacity-60"}`}>
-          <p className="text-xs font-arabic px-3 py-1.5 rounded-full" style={{ backgroundColor: isDarkBg ? "rgba(212,196,176,0.1)" : "rgba(10,22,40,0.06)", color: isDarkBg ? "rgba(212,196,176,0.6)" : "rgba(10,22,40,0.5)" }}>
-            اسحب للتدوير • اضغط للتكبير
+          <p className="text-xs px-3 py-1.5 rounded-full" style={{ backgroundColor: isDarkBg ? "rgba(212,196,176,0.1)" : "rgba(10,22,40,0.06)", color: isDarkBg ? "rgba(212,196,176,0.6)" : "rgba(10,22,40,0.5)" }}>
+            Drag to rotate · Pinch to zoom
           </p>
         </div>
       )}
@@ -268,7 +297,7 @@ export default function ModelViewer({
           href="https://nqsh-3d.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-arabic font-medium transition-opacity hover:opacity-100"
+          className="absolute top-3 left-3 z-30 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium transition-opacity hover:opacity-100"
           style={{
             backgroundColor: isDarkBg ? "rgba(10,22,40,0.7)" : "rgba(255,255,255,0.7)",
             backdropFilter: "blur(8px)",
